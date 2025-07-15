@@ -1,13 +1,13 @@
-import z from "zod"
+import z, { email } from "zod"
 
 const signinSchema = z.object({
-    username : z.string().email("Required email") ,
+    email : z.string().email("Required email") ,
     password : z.string().min(4)
 })
 
 const signupSchema = z.object({
-    username : z.string().email("Required email") ,
     name : z.string(),
+    email : z.string().email(),
     password : z.string().min(4)
 })
 
@@ -25,7 +25,7 @@ export const CreateRoomPayloadSchema = z.object({
 });
 
 // Infer the TypeScript type for the payload
-export type CreateRoomPayload = z.infer<typeof CreateRoomPayloadSchema>;
+// export type CreateRoomPayload = z.infer<typeof CreateRoomPayloadSchema>;
 
 // Schema for a Room object
 // This defines the structure of a room that will be created and stored.
@@ -41,7 +41,7 @@ export const RoomSchema = z.object({
 });
 
 // Infer the TypeScript type for a Room
-export type Room = z.infer<typeof RoomSchema>;
+// export type Room = z.infer<typeof RoomSchema>;
 
 // Schema for joining a room (if you were to implement a joinRoom endpoint)
 export const JoinRoomSchema = z.object({
@@ -50,8 +50,8 @@ export const JoinRoomSchema = z.object({
 //   userId: z.string().min(1, { message: "User ID is required." }),
 });
 
-export type JoinRoomPayload = z.infer<typeof JoinRoomSchema>;
+// export type JoinRoomPayload = z.infer<typeof JoinRoomSchema>;
 
-export type SigninPayload = z.infer<typeof signinSchema>;
-export type SignupPayload = z.infer<typeof signupSchema>;
+// export type SigninPayload = z.infer<typeof signinSchema>;
+// export type SignupPayload = z.infer<typeof signupSchema>;
 export {signinSchema ,signupSchema , jwtSchema}
