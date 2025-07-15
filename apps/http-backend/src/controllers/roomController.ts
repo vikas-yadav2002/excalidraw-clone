@@ -1,6 +1,7 @@
 // src/controllers/roomController.ts
 import { Request, Response } from "express";
-import { CreateRoomPayloadSchema, Room, RoomSchema } from "../schema/roomSchema";
+// import { CreateRoomPayloadSchema, Room, RoomSchema } from "../schema/roomSchema";
+import { CreateRoomPayloadSchema, Room, RoomSchema } from "@repo/common/types"
 
 // Helper function to generate a random 6-character hexadecimal string
 const generateRoomId = (): string => {

@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
-import { signinSchema, SignupPayload, signupSchema, SigninPayload } from "../schema/authSchema";
+// import { signinSchema, SignupPayload, signupSchema, SigninPayload } from "../schema/authSchema";
+import { signinSchema, SignupPayload, signupSchema, SigninPayload } from "@repo/common/types"
 import jwt from "jsonwebtoken" // Import jsonwebtoken
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your_super_secret_jwt_key_please_change_me';
+import {JWT_SECRET} from "@repo/backend-common/config"
 
 const signin = async (req: Request, res: Response) => {
   const data = req.body;
