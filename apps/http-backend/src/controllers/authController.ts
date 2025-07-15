@@ -1,88 +1,128 @@
 import { Request, Response } from "express";
-// import { signinSchema, SignupPayload, signupSchema, SigninPayload } from "../schema/authSchema";
-import { signinSchema, SignupPayload, signupSchema, SigninPayload } from "@repo/common/types"
-import jwt from "jsonwebtoken" // Import jsonwebtoken
+import {
+  signinSchema,
+  signupSchema,
+  // SigninPayload,
+  // SignupPayload,
+} from "@repo/common/types";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import { prismaClient } from "@repo/db/client";
+import { JWT_SECRET } from "@repo/backend-common/config";
 
-import {JWT_SECRET} from "@repo/backend-common/config"
+// -------------------- SIGNIN --------------------
 
 const signin = async (req: Request, res: Response) => {
   const data = req.body;
   const validationResult = signinSchema.safeParse(data);
 
   if (!validationResult.success) {
-    // If validation fails, send a 400 Bad Request with validation errors
     return res.status(400).json({
       message: "Validation failed",
       errors: validationResult.error,
     });
   }
 
-  const { username, password }: SigninPayload = validationResult.data;
+  const { email , password } = validationResult.data;
 
-  console.log("Attempting signin for:", { username, password });
+  try {
+    const user = await prismaClient.user.findUnique({
+      where: { email },
+    });
 
-  // In a real app:
-  // 1. Fetch user from DB by username
-  // 2. Compare hashed password
-  // if (!user || !await bcrypt.compare(password, user.hashedPassword)) {
-  //   return res.status(401).json({ message: "Invalid credentials" });
-  // }
-  // --- End Placeholder ---
+    if (!user) {
+      return res.status(401).json({
+        message: "Invalid username or password",
+      });
+    }
 
-  // If authentication is conceptually successful, create a JWT
-  const token = jwt.sign(
-    { username: username, role: 'user' }, // Payload: include user-specific data (e.g., username, user ID, roles)
-    JWT_SECRET,
-    { expiresIn: '1h' } // Token expires in 1 hour (adjust as needed)
-  );
+    const isPasswordValid = await bcrypt.compare(password, user.password);
 
-  res.status(200).json({
-    message: "Signin successful",
-    token: token, // Send the generated JWT to the client
-    user: {
-      username: username,
-    },
-  });
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        message: "Invalid username or password",
+      });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, name: user.name, email: user.email },
+      JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    return res.status(200).json({
+      message: "Signin successful",
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      },
+    });
+  } catch (err) {
+    console.error("Signin error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 };
+
+// -------------------- SIGNUP --------------------
 
 const signup = async (req: Request, res: Response) => {
   const data = req.body;
   const validationResult = signupSchema.safeParse(data);
 
   if (!validationResult.success) {
-    // If validation fails, send a 400 Bad Request with validation errors
     return res.status(400).json({
       message: "Validation failed",
-      errors: validationResult.error, // Access .errors array for detailed Zod errors
+      errors: validationResult.error,
     });
   }
 
-  const newUser: SignupPayload = validationResult.data; // Use the inferred type for better safety
+  const { email, name, password } = validationResult.data;
 
-  // --- Placeholder for actual user creation logic (e.g., hash password, save to DB) ---
-  // For now, we'll just assume user creation is successful.
-  console.log("Attempting signup for:", newUser);
+  try {
+    // Check if user with same username or email already exists
+    const existingUser = await prismaClient.user.findFirst({
+      where: {
+        OR: [{ email }, { name }],
+      },
+    });
 
-  // In a real app:
-  // 1. Hash newUser.password (e.g., const hashedPassword = await bcrypt.hash(newUser.password, 10);)
-  // 2. Check if username or email already exists in DB
-  // 3. Save new user (with hashed password) to DB
-  // --- End Placeholder ---
+    if (existingUser) {
+      return res.status(409).json({
+        message: "Username or email already in use",
+      });
+    }
 
-  // If user creation is conceptually successful, create a JWT
-  const token = jwt.sign(
-    { username: newUser.username,  role: 'user' }, // Payload
-    JWT_SECRET,
-    { expiresIn: '1h' } // Token expires in 1 hour
-  );
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  res.status(201).json({
-    message: "Signup successful",
-    token: token, 
-    user: {
-      username: newUser.username,
-    },
-  });
+    const user = await prismaClient.user.create({
+      data: {
+        email,
+        name,
+        password: hashedPassword
+      },
+    });
+
+    const token = jwt.sign(
+      { id: user.id, username: user.email, name: user.name },
+      JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    return res.status(201).json({
+      message: "Signup successful",
+      token,
+      user: {
+        id: user.id,
+        name: user.name, 
+        email : user.email
+      },
+    });
+  } catch (err) {
+    console.error("Signup error:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
 };
 
 export { signin, signup };
