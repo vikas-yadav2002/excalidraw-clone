@@ -1,72 +1,93 @@
-// src/controllers/roomController.ts
 import { Request, Response } from "express";
-// import { CreateRoomPayloadSchema, Room, RoomSchema } from "../schema/roomSchema";
-import { CreateRoomPayloadSchema,  RoomSchema } from "@repo/common/types"
+import { prismaClient } from "@repo/db/client";
+import { CreateRoomPayloadSchema, RoomSchema } from "@repo/common/types";
 
-// Helper function to generate a random 6-character hexadecimal string
-const generateRoomId = (): string => {
-  // Generate a random number and convert to hex, then slice to 6 characters
-  return Math.floor(Math.random() * 0xFFFFFF).toString(16).padStart(6, '0');
-};
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string; 
+    name: string;
+    email: string; 
+    iat: number; 
+    exp: number; 
+  };
+}
 
-const createRoom = async (req: Request, res: Response) => {
-  // Middleware is expected to set 'x-user-name' and 'x-user-id' headers
-//   const userName = req.headers['x-user-name'] as string | undefined;
-//   const userId = req.headers['x-user-id'] as string | undefined;
-   const {userName , userId}  = req.body
+const createRoom = async (req: AuthenticatedRequest, res: Response) => {
+ 
+  const adminId = req.user?.id;
+  console.log(req.user)
+  
+  if (!adminId) {
+    return res.status(401).json({
+      message: "Unauthorized: User not authenticated or ID not found in token.",
+    });
+  }
 
-  // Validate the payload from headers using Zod
+  // Get slug from the request body
+  const { slug } = req.body;
+
+  // Validate the slug from the payload
   const validationResult = CreateRoomPayloadSchema.safeParse({
-    name: userName,
-    userId: userId,
+    slug: slug,
+    adminId: adminId, // Pass the adminId obtained from req.user to the schema for validation
   });
 
   if (!validationResult.success) {
-    // If validation fails, send a 400 Bad Request with validation errors
     return res.status(400).json({
-      message: "Missing or invalid user information in headers. Please ensure 'x-user-name' and 'x-user-id' are provided.",
-      errors: validationResult.error, // Zod's detailed error array
+      message: "Invalid request payload. Please ensure 'slug' is provided and valid.",
+      errors: validationResult.error,
     });
   }
 
-  // Destructure validated data
-  const { name: creatorName, userId: creatorId } = validationResult.data;
+  // Destructure validated slug (adminId is already secured from req.user)
+  const { slug: validatedSlug } = validationResult.data;
 
-  // Generate a unique room ID
-  const newRoomId = generateRoomId();
-
-  let newRoom ;
   try {
-    newRoom = RoomSchema.parse({
-      roomId: newRoomId,
-      creatorId: creatorId,
-      creatorName: creatorName,
-      members: [{ userId: creatorId, name: creatorName }], // Creator is the first member
-      createdAt: new Date(), // Set creation timestamp
+    // Check if a room with the given slug already exists
+    const existingRoom = await prismaClient.room.findUnique({
+      where: {
+        slug: validatedSlug,
+      },
     });
-  } catch (error) {
-    if (error) {
-      console.error("Internal server error: Failed to construct room object:", error);
-    } else {
-      console.error("Internal server error during room construction:", error);
+
+    if (existingRoom) {
+      return res.status(409).json({
+        message: "Room with this slug already exists. Please choose a different slug.",
+        room: existingRoom,
+      });
     }
-    return res.status(500).json({
+
+    // Create the new room in the database
+    const newRoom = await prismaClient.room.create({
+      data: {
+        adminId: adminId, 
+        slug: validatedSlug,
+      },
+    });
+    const parsedNewRoom = RoomSchema.safeParse(newRoom);
+
+    if (!parsedNewRoom.success) {
+      console.error("Internal server error: Failed to parse created room object:", parsedNewRoom.error);
+      return res.status(500).json({
+        message: "Room created, but there was an issue processing its data.",
+        errors: parsedNewRoom.error,
+      });
+    }
+
+    console.log(`Room ${newRoom.id} created by ${newRoom.adminId} (slug: ${newRoom.slug})`);
+    console.log("Room data saved to DB:", newRoom);
+
+    res.status(201).json({
+      message: "Room created successfully",
+      room: newRoom,
+    });
+
+  } catch (error) {
+    console.error("Error creating room:", error);
+    res.status(500).json({
       message: "Failed to create room due to an internal server error.",
     });
   }
-
-  // --- Database Logic Placeholder ---
-  // In a real application, you would save 'newRoom' to your database here.
-  // Example: await db.collection('rooms').add(newRoom);
-  console.log(`Room ${newRoom.roomId} created by ${newRoom.creatorName} (${newRoom.creatorId})`);
-  console.log("Room data (no DB save yet):", newRoom);
-  // --- End Database Logic Placeholder ---
-
-  // Respond with the created room details
-  res.status(201).json({
-    message: "Room created successfully",
-    room: newRoom, // Return the full room object
-  });
 };
 
 export { createRoom };
