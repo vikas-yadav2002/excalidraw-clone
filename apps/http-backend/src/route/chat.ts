@@ -4,7 +4,7 @@ import { chat } from "../controllers/chatController";
 
 const chatRouter :Router = Router();
 
-chatRouter.get("/chat/:id" , chat )
+chatRouter.get("/chat/:roomSlug" , chat )
 
 
 export default chatRouter;
