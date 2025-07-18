@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-
-
+import axios from 'axios';
+import { HTTP_BACKEND_URL } from '../config/links';
 
 const SignInPage: React.FC = () => {
   const router = useRouter();
@@ -13,11 +13,42 @@ const SignInPage: React.FC = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+ const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false); 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setLoading(true); 
 
+    try {
+      const response = await axios.post(`http://localhost:3003/api/v1/auth/signin`, {
+        email,
+        password,
+      });
+
+      const { token, message , user } = response.data; 
+
+      if (token) {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user' , user.name)
+        console.log('Sign-in successful. Token stored.');
+        const redirectTo = searchParams.get('redirect') || '/room';
+        router.push(redirectTo);
+      } else {
+        setError(message || 'Sign-in successful, but no token received. Please try again.');
+      }
+    } catch (err: any) {
+      console.error('Sign-in error:', err);
+      if (axios.isAxiosError(err) && err.response) {
+       
+        setError(err.response.data.message || 'An error occurred during sign-in.');
+      } else {
+        setError('Network error or unexpected issue. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
     
   };
 
@@ -83,7 +114,7 @@ const SignInPage: React.FC = () => {
                      text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline
                      transition duration-200 ease-in-out transform hover:scale-105 active:scale-95"
         >
-          Sign In
+          {loading ? "signinin In ......" : "Sign In"}
         </button>
 
         <p className="text-center text-gray-400 text-sm mt-8">

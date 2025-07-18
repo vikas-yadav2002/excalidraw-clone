@@ -200,7 +200,7 @@ export async function handleChat(roomId: string, messageContent: string, socket:
 
         // 3. Broadcast the message to all users in that room
         const chatMessage = {
-            type: "chatMessage",
+            type: "chat",
             roomId: roomId,
             senderId: userId,
             message: messageContent,

@@ -47,19 +47,15 @@ export const chat = async (req: ChatRequest, res: Response) => {
       id: 'desc', // or 'asc' based on latest first or not
     },
     take: 50,
-    include: {
-      user: true, // If chat has a relation to user (optional)
-    },
+    // include: {
+    //   user: true, // If chat has a relation to user (optional)
+    // },
   });
 
   return res.json({
     success: true,
-    room: {
-      id: room.id,
-      slug: room.slug,
-      name: room.adminId,
-    },
-    chats,
+    message : chats,
+    roomId : room.id,
     user: req.user || null,
   });
 };

@@ -3,8 +3,10 @@ import authrouter from "./route/auth";
 import roomRouter from "./route/createRoom";
 import authenticate from "./middleware/authmiddleware";
 import chatRouter from "./route/chat";
+import cors from "cors"
 const app = express();
 app.use(express.json());
+app.use(cors())
 
 app.use('/api/v1/auth' , authrouter)
 app.use('/api/v1/room' , authenticate ,roomRouter)

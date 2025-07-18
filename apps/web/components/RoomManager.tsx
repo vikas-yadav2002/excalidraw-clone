@@ -1,21 +1,26 @@
 'use client';
 
+import { redirect } from 'next/navigation';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function RoomManager() {
   const [roomToCreate, setRoomToCreate] = useState('');
   const [roomToJoin, setRoomToJoin] = useState('');
+  const router = useRouter();
+  const [loading , setLoading] = useState("");
 
   const handleCreateRoom = () => {
     if (!roomToCreate.trim()) return alert("Please enter a room name.");
     alert(`Creating room: ${roomToCreate}`);
+    
     setRoomToCreate('');
   };
 
   const handleJoinRoom = () => {
     if (!roomToJoin.trim()) return alert("Please enter a room name.");
-    alert(`Joining room: ${roomToJoin}`);
-    setRoomToJoin('');
+    router.push(`/room/${roomToJoin}`)
+   
   };
 
   return (
