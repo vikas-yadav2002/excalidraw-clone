@@ -59,3 +59,62 @@ export const chat = async (req: ChatRequest, res: Response) => {
     user: req.user || null,
   });
 };
+
+
+export const getRoomBySlug = async (req: Request, res: Response) => {
+  const { roomSlug } = req.params;
+
+  if (!roomSlug) {
+    return res.status(400).json({
+      success: false,
+      message: "Room slug is required in URL",
+    });
+  }
+
+  const room = await getRoom(roomSlug); // or use prismaClient.room.findUnique({ where: { slug: roomSlug } })
+
+  if (!room) {
+    return res.status(404).json({
+      success: false,
+      message: "No room found with this slug",
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    roomId: room.id,
+  });
+};
+
+export const getChatsByRoomId = async (req: Request, res: Response) => {
+  const { roomId } = req.params;
+
+  if (!roomId) {
+    return res.status(400).json({
+      success: false,
+      message: "Room ID is required in URL",
+    });
+  }
+
+  const parsedRoomId = parseInt(roomId, 10);
+  if (isNaN(parsedRoomId)) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid Room ID",
+    });
+  }
+
+  const chats = await prismaClient.chat.findMany({
+    where: {
+      roomId: parsedRoomId,
+    },
+    orderBy: {
+      id: 'desc',
+    },
+    take: 50,
+  });
+
+  return res.status(200).json(
+  chats.map(chat => chat.message)
+  );
+};

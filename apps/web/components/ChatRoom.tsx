@@ -23,7 +23,7 @@ import { HTTP_BACKEND_URL } from "../config/links";
     }
 }
 
-
+ 
 export const ChatRoom =({roomSlug}:{roomSlug : string})=>{
   const [message , setMessages]  = useState<string[]>([])
   const [roomId , setRoomId ]   = useState()

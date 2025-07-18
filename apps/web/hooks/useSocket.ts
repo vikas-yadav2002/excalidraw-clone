@@ -18,11 +18,11 @@ export function useSocket(): UseSocketReturn {
         setError(null);
 
         const token = localStorage.getItem('token'); 
-        console.log("Token retrieved for WebSocket:", token ? "Exists" : "Does Not Exist");
+        // console.log("Token retrieved for WebSocket:", token ? "Exists" : "Does Not Exist");
         const backendWsUrl = process.env.NEXT_PUBLIC_WS_BACKEND_URL || "ws://localhost:8080";
         const wsUrl = token ? `${backendWsUrl}?token=${token}` : backendWsUrl; 
 
-        console.log("Attempting to connect to WebSocket:", wsUrl);
+        // console.log("Attempting to connect to WebSocket:", wsUrl);
 
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.close();

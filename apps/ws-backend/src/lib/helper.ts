@@ -210,6 +210,7 @@ export async function handleChat(roomId: string, messageContent: string, socket:
         connectedUsers.forEach(u => {
             if (u.rooms.includes(roomId) && u.ws.readyState === WebSocket.OPEN) {
                 // Send to everyone in the room, including the sender
+                console.log(`sending data in ${roomId}`)
                 u.ws.send(JSON.stringify(chatMessage));
             }
         });

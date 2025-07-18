@@ -2,7 +2,7 @@
 
 
 body {
-  background: linear-gradient(135deg, #1A202C 0%, #2D3748 100%); /* Dark gradient */
+  background: linear-gradient(145deg, #111111 0%, #232323 100%);
   min-height: 100vh;
   display: flex;
   align-items: center;
