@@ -14,13 +14,11 @@ async function getRoomID(roomSlug: string) {
     const response = await axios.get(
       `${HTTP_BACKEND_URL}/chats/chat/${roomSlug}`,
       {
-        // Axios config object
         headers: {
           Authorization: `Bearer ${token}`,
         },
       }
     );
-    // console.log(response)
     return response.data;
   } catch (error) {
     console.error("Failed to fetch chat messages:", error);
@@ -33,7 +31,6 @@ export function RoomCanvas({ roomSlug }: { roomSlug: string }) {
   useEffect(() => {
     const fetchMessages = async () => {
       const response = await getRoomID(roomSlug);
-      // console.log(`thr room id of ${roomSlug} : is ${response.roomId}`)
       setRoomId(response.roomId);
     };
 
