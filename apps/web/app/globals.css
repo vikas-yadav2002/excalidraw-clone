@@ -9,3 +9,26 @@ body {
   justify-content: center;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
+
+#drawing-line {
+  /* Defines the pattern: a 200px visible line segment, 
+    followed by a 4800px gap. The total length (5000) 
+    just needs to be longer than your SVG path.
+  */
+  stroke-dasharray: 400 2800; 
+  
+  
+  animation: move 8s linear infinite;
+}
+
+@keyframes move {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    /* Animate the offset by the negative total length of the dasharray. 
+      This pulls the visible segment along the entire path.
+    */
+    stroke-dashoffset: -5000;
+  }
+}

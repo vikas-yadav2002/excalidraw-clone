@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import CursorTrail from '../components/CursorTrail';
 
 export default function LandingPage() {
   const [isVisible, setIsVisible] = useState(false);
   const [activeShape, setActiveShape] = useState(0);
+const [pathData, setPathData] = useState('');
 
   useEffect(() => {
     setIsVisible(true);
@@ -49,13 +51,59 @@ export default function LandingPage() {
     }
   ];
 
+
+ useEffect(() => {
+    setIsVisible(true);
+    
+    const interval = setInterval(() => {
+      setActiveShape((prev) => (prev + 1) % 4);
+    }, 10000);
+
+    // ADDED: Function to generate a random path across the screen
+    const generateRandomPath = () => {
+      const width = window.innerWidth + 100; 
+      const height = window.innerHeight;
+      
+      // Start from a random y-position on the left edge
+      let d = `M -10 ${Math.random() * height}`;
+      const segments = 5; // More segments = more curves
+      
+      for (let i = 1; i <= segments; i++) {
+        const x = (i / segments) * width;
+        const y = Math.random() * height;
+        // T command creates a smooth quadratic Bézier curve
+        d += ` T ${x} ${y}`;
+      }
+      return d;
+    };
+    
+    setPathData(generateRandomPath());
+
+    return () => clearInterval(interval);
+  }, []);
+
+
+
+
   return (
     // Make the main container relative
     <div className="min-h-screen w-screen bg-gray-900 text-white relative">
+   <CursorTrail />
       {/* ADDED: Background Grid Layer */}
       <div 
     className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:1rem_1rem]"
  ></div>
+
+ <svg className="absolute w-full h-full z-0" preserveAspectRatio="none">
+   <path 
+          id="drawing-line"
+          // UPDATED: Use the path data from the state
+          d={pathData}
+          stroke="#10b981" // Emerald color
+          strokeWidth="2" 
+          fill="none" 
+        />
+  </svg>
 
       {/* Wrap all original content in a relative div with a higher z-index */}
       <div className="relative z-10">

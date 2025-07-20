@@ -1,71 +1,72 @@
+'use client';
+
 import { useEffect, useRef, useState } from "react";
 import { initDraw } from "../draw";
 import { useSocket } from "../hooks/useSocket";
+import { RectangleHorizontal, Circle, Minus, Pencil } from 'lucide-react'; // Using Oval from lucide
 
-type ShapeType = "rect" | "circle" | "oval" | "line";
+// Added "pencil" to the type definition to match the button array
+type ShapeType = "rect" | "circle"  | "line" | "pencil";
+
+// A mapping from shape names to their corresponding lucide-react icons
+const shapeIcons: Record<ShapeType, React.ReactNode> = {
+  rect: <RectangleHorizontal size={20} />,
+  circle: <Circle size={20} />,
+  line: <Minus size={20} />,
+  pencil: <Pencil size={20} />,
+};
 
 export function Canvas({ roomSlug, roomId }: { roomSlug: string; roomId: string }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const { socket, loading, error } = useSocket();
+  const { socket, loading } = useSocket();
 
   const [selectedShape, setSelectedShape] = useState<ShapeType>("rect");
+  const shapeRef = useRef<ShapeType>("rect");
 
- const shapeRef = useRef<ShapeType>("rect");
+  useEffect(() => {
+    // Keep the ref updated with the latest selected shape
+    shapeRef.current = selectedShape;
+  }, [selectedShape]);
 
-useEffect(() => {
-  shapeRef.current = selectedShape; // always store the latest shape
-}, [selectedShape]);
+  useEffect(() => {
+    if (!canvasRef.current || !socket || loading) return;
 
-useEffect(() => {
-  if (!canvasRef.current || !socket) return;
-
-  initDraw(canvasRef.current, roomId, socket, shapeRef); // pass ref, not value
-}, [socket, loading]);
-
+    // Pass the ref to the drawing initialization function
+    initDraw(canvasRef.current, roomId, socket, shapeRef);
+  }, [socket, loading, roomId]); // Added roomId to dependency array
 
   if (loading) {
-    return <div>Connecting to the server with {roomSlug}...</div>;
+    return <div className="flex items-center justify-center h-full">Connecting to {roomSlug}...</div>;
   }
 
   if (!socket) {
-    return <div>There may be some error connecting WebSocket.</div>;
+    return <div className="flex items-center justify-center h-full">Could not connect to the server.</div>;
   }
 
   return (
     <div className="relative w-full h-full">
-      {/* Canvas */}
-      <canvas ref={canvasRef} className="border border-gray-400" width={800} height={800}></canvas>
+      {/* Canvas Element */}
+      <canvas 
+        ref={canvasRef} 
+        className="border border-gray-300 bg-white" 
+        width={800} 
+        height={800}
+      ></canvas>
 
-      {/* Shape Selector (inline inside Canvas) */}
-      <div className="absolute top-4 left-4 flex gap-2 bg-white p-2 rounded shadow-md z-10">
-        {["rect", "circle", "oval", "line"].map((shape) => (
+      {/* Shape Selector Toolbar */}
+      <div className="absolute top-4 left-4 flex gap-2 bg-white p-2 rounded-lg shadow-lg border border-gray-200 z-10">
+        {(Object.keys(shapeIcons) as ShapeType[]).map((shape) => (
           <button
             key={shape}
-            onClick={() => setSelectedShape(shape as ShapeType)}
-            className={`w-10 h-10 flex items-center justify-center rounded border ${
-              selectedShape === shape ? "bg-blue-500" : "bg-gray-100"
+            onClick={() => setSelectedShape(shape)}
+            className={` cursor-grab w-10 h-10 flex items-center justify-center rounded-md border transition-all duration-150 ${
+              selectedShape === shape 
+                ? "bg-blue-500 text-white border-blue-600" 
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:border-gray-400"
             }`}
+            title={`Select ${shape.charAt(0).toUpperCase() + shape.slice(1)}`} 
           >
-            {shape === "rect" && (
-              <svg width="20" height="20">
-                <rect width="16" height="10" x="2" y="5" stroke="black" fill="none" strokeWidth="2" />
-              </svg>
-            )}
-            {shape === "circle" && (
-              <svg width="20" height="20">
-                <circle cx="10" cy="10" r="6" stroke="black" fill="none" strokeWidth="2" />
-              </svg>
-            )}
-            {shape === "oval" && (
-              <svg width="24" height="20">
-                <ellipse cx="12" cy="10" rx="8" ry="4" stroke="black" fill="none" strokeWidth="2" />
-              </svg>
-            )}
-            {shape === "line" && (
-              <svg width="20" height="20">
-                <line x1="2" y1="18" x2="18" y2="2" stroke="black" strokeWidth="2" />
-              </svg>
-            )}
+            {shapeIcons[shape]}
           </button>
         ))}
       </div>
