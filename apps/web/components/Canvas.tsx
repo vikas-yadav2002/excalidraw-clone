@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { initDraw } from "../draw";
 import { useSocket } from "../hooks/useSocket";
-import { RectangleHorizontal, Circle, Minus, Pencil } from 'lucide-react'; // Using Oval from lucide
+import { RectangleHorizontal, Circle, Minus, Pencil , Eraser } from 'lucide-react'; // Using Oval from lucide
 
 // Added "pencil" to the type definition to match the button array
-type ShapeType = "rect" | "circle"  | "line" | "pencil";
+type ShapeType = "rect" | "circle"  | "line" | "pencil" | "erasure";
 
 // A mapping from shape names to their corresponding lucide-react icons
 const shapeIcons: Record<ShapeType, React.ReactNode> = {
@@ -14,6 +14,7 @@ const shapeIcons: Record<ShapeType, React.ReactNode> = {
   circle: <Circle size={20} />,
   line: <Minus size={20} />,
   pencil: <Pencil size={20} />,
+  erasure : <Eraser size={20}/>
 };
 
 export function Canvas({ roomSlug, roomId }: { roomSlug: string; roomId: string }) {

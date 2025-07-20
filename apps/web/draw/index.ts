@@ -1,8 +1,6 @@
 import axios from "axios";
-// Make sure this path is correct for your project structure
 import { HTTP_BACKEND_URL } from "../config/links";
 
-// The corrected and clarified type definitions for all shapes
 type Shape =
   | {
       type: "rect";
@@ -30,15 +28,34 @@ type Shape =
       points: { x: number; y: number }[];
     };
 
-export type SelectedShape = "rect" | "circle" | "line" | "pencil";
+export type SelectedShape = "rect" | "circle" | "line" | "pencil" | "erasure";
 
-// Global array to hold all drawn shapes
 let initialShapes: Shape[] = [];
 
 /**
- * Initializes the canvas for drawing, sets up event listeners,
- * and handles WebSocket communication.
+ * Helper function to check if a point is close to a line segment.
+ * @param p The point to check (e.g., the mouse cursor).
+ * @param a The start point of the line segment.
+ * @param b The end point of the line segment.
+ * @param threshold The distance threshold (how close is "near").
  */
+function isPointNearLine(
+  p: { x: number; y: number },
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  threshold = 5
+): boolean {
+  const L2 = (b.x - a.x) ** 2 + (b.y - a.y) ** 2;
+  if (L2 === 0)
+    return Math.sqrt((p.x - a.x) ** 2 + (p.y - a.y) ** 2) < threshold;
+  let t = ((p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y)) / L2;
+  t = Math.max(0, Math.min(1, t));
+  const closestX = a.x + t * (b.x - a.x);
+  const closestY = a.y + t * (b.y - a.y);
+  const distance = Math.sqrt((p.x - closestX) ** 2 + (p.y - closestY) ** 2);
+  return distance < threshold;
+}
+
 export const initDraw = async (
   canvas: HTMLCanvasElement,
   roomId: string,
@@ -52,10 +69,11 @@ export const initDraw = async (
 
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
-
   // Set canvas dimensions
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+  ctx.fillStyle = "rgb(20, 20, 20)"; // Set background color
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Load existing shapes from the backend
   initialShapes = await getAllShapes(roomId);
@@ -141,10 +159,10 @@ export const initDraw = async (
     }
 
     if (newShape) {
-      console.log(newShape)
+      console.log(newShape);
       initialShapes.push(newShape);
       clearAndRedraw(ctx, canvas, initialShapes);
-     
+
       socket.send(
         JSON.stringify({
           type: "chat",
@@ -152,13 +170,13 @@ export const initDraw = async (
           roomId,
         })
       );
-     
     }
   };
 
   const onMouseMove = (e: MouseEvent) => {
     if (!clicked) return;
 
+    //  console.log(selectedShapeRef)
     const xCurrent = e.offsetX;
     const yCurrent = e.offsetY;
     const shapeType = selectedShapeRef.current;
@@ -202,6 +220,56 @@ export const initDraw = async (
         ctx.lineTo(currentPencilPath[i]!.x, currentPencilPath[i]!.y);
       }
       ctx.stroke();
+    } else if (shapeType === "erasure") {
+      // Loop through all saved shapes in reverse.
+      // We loop backwards because if we remove an item, it won't mess up the index of the next items.
+      if (initialShapes.length < 1) return;
+      for (let i = initialShapes.length - 1; i >= 0; i--) {
+        const shape = initialShapes[i];
+        let hit = false;
+
+        // --- Collision Detection Logic ---
+        if (shape!.type === "rect") {
+          // Check if the eraser's current position (xCurrent, yCurrent) is inside the rectangle.
+          hit =
+            xCurrent > shape!.xstart &&
+            xCurrent < shape!.xstart + shape!.width &&
+            yCurrent > shape!.ystart &&
+            yCurrent < shape!.ystart + shape!.height;
+        } else if (shape!.type === "circle") {
+          // Check if the distance from the eraser to the circle's center is less than its radius.
+          const distance = Math.sqrt(
+            (xCurrent - shape!.xstart) ** 2 + (yCurrent - shape!.ystart) ** 2
+          );
+          hit = distance < shape!.radius;
+        } else if (shape!.type === "line") {
+          hit = isPointNearLine(
+            { x: xCurrent, y: yCurrent },
+            { x: shape!.xstart, y: shape!.ystart },
+            { x: shape!.xend, y: shape!.yend }
+          );
+        } else if (shape!.type === "pencil") {
+          // Check if the point is near any segment of the pencil path
+          for (let j = 0; j < shape!.points.length - 1; j++) {
+            if (
+              isPointNearLine(
+                { x: xCurrent, y: yCurrent },
+                shape!.points[j]!,
+                shape!.points[j + 1]!
+              )
+            ) {
+              hit = true;
+              break;
+            }
+          }
+        }
+        if (hit) {
+          console.log("hit happened");
+          initialShapes.splice(i, 1);
+          clearAndRedraw(ctx, canvas, initialShapes);
+          break;
+        }
+      }
     }
   };
 
@@ -255,9 +323,6 @@ function clearAndRedraw(
   }
 }
 
-/**
- * Fetches all saved shapes for a given room from the backend.
- */
 async function getAllShapes(roomId: string): Promise<Shape[]> {
   const token = localStorage.getItem("token");
   if (!token) return [];
