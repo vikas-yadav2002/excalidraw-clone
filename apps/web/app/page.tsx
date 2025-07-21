@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import CursorTrail from '../components/CursorTrail';
+import Link from 'next/link';
 
 export default function LandingPage() {
   const [isVisible, setIsVisible] = useState(false);
@@ -121,12 +122,16 @@ const [pathData, setPathData] = useState('');
               </div>
               
               <div className="flex items-center space-x-4">
+                <Link href={"/signin"}>
                 <button className="px-4 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-200">
                   Sign In
                 </button>
+                </Link>
+                <Link href={"/sigin"}>
                 <button className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-all duration-200 font-medium">
                   Sign Up
                 </button>
+                </Link>
               </div>
             </div>
           </div>

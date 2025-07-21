@@ -4,7 +4,6 @@
 import { useEffect, useRef, useState } from "react";
 import { HTTP_BACKEND_URL } from "../config/links";
 import axios from "axios";
-import CanvasPage from "../app/canvas/[room]/page";
 import { Canvas } from "./Canvas";
 
 

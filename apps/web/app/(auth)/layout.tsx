@@ -6,33 +6,35 @@ interface AuthLayoutProps {
 
 const AuthLayout: React.FC<AuthLayoutProps> = ({ children }) => {
   return (
-    <div className="flex min-h-screen w-screen bg-gray-900 text-white">
-      {/* Left Section: Creative Layout */}
-      <div className="hidden lg:flex flex-col justify-center items-center w-1/2 p-8
-                      bg-gradient-to-br from-gray-900 via-gray-800 to-indigo-900
-                      shadow-xl relative overflow-hidden">
-        {/* Abstract shapes/patterns for creativity */}
-        <div className="absolute top-1/4 left-1/4 w-48 h-48 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
-        <div className="absolute bottom-1/3 right-1/3 w-64 h-64 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 right-1/4 w-52 h-52 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
+    <div className="flex min-h-screen w-full text-white">
+      
+      {/* Left Section: Panel with Grid Background */}
+      <div className="hidden lg:flex flex-col justify-center items-center w-1/2 bg-gray-900 relative p-8">
+        
+        {/* Grid Layer (local to this div) */}
+        <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:2rem_2rem]"></div>
 
+        {/* Content Layer (sits on top of the grid) */}
         <div className="relative z-10 text-center">
-          <h1 className="text-6xl font-extrabold mb-4 leading-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-white">
-            Your App Name
+          <h1 className="text-5xl lg:text-6xl font-bold mb-4">
+            <span className="bg-gradient-to-r from-blue-400 to-emerald-400 text-transparent bg-clip-text">
+              Sketchify
+            </span>
           </h1>
-          <p className="text-xl text-gray-300 max-w-md mx-auto">
+          <p className="text-lg text-gray-300 max-w-md">
             Securely access your account or join our vibrant community.
           </p>
-          <p className="mt-6 text-md text-gray-400">
+          <p className="mt-6 text-md text-gray-500 italic">
             "Innovation meets simplicity."
           </p>
         </div>
       </div>
 
-      {/* Right Section: Authentication Forms (Children) */}
-      <main className="flex flex-1 justify-center items-center p-4 sm:p-6 lg:p-8">
+      {/* Right Section: Solid Background for Auth Forms */}
+      <main className="w-full lg:w-1/2 flex justify-center items-center bg-gray-900 p-4 sm:p-6 lg:p-8">
         {children}
       </main>
+
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { WebSocketServer } from "ws";
-import { authenticate, createRoom, handleChat, joinRoom, leaveRoom } from "./lib/helper";
+import { authenticate, createRoom, handleChat, handleDeleteShape, joinRoom, leaveRoom } from "./lib/helper";
 import { connectedUsers } from "./lib/user";
 const wss = new WebSocketServer({ port: 8080 });
 
@@ -85,7 +85,15 @@ wss.on("connection", (socket, request) => {
                         socket.send(JSON.stringify({ type: 'error', message: 'roomId and message are required for chat.' }));
                     }
                     break;
-
+                case 'shape-delete':
+                  console.log("shape-delete")
+                    if (parsedData.roomId && parsedData.shapeId) {
+                      console.log("calling delete from websocket")
+                        await handleDeleteShape(parsedData.roomId, parsedData.shapeId, socket);
+                    } else {
+                        socket.send(JSON.stringify({ type: 'error', message: 'roomId and message id are required for chat.' }));
+                    }
+                    break;
                 default:
                     socket.send(JSON.stringify({ type: 'error', message: 'Unknown message type.' }));
                     break;

@@ -208,7 +208,8 @@ export async function handleChat(roomId: string, messageContent: string, socket:
         };
 
         connectedUsers.forEach(u => {
-            if (u.rooms.includes(roomId) && u.ws.readyState === WebSocket.OPEN) {
+            if (u.rooms.includes(roomId) && u.ws.readyState === WebSocket.OPEN && 
+                 u.ws !== socket) {
                 // Send to everyone in the room, including the sender
                 console.log(`sending data in ${roomId}`)
                 u.ws.send(JSON.stringify(chatMessage));
@@ -220,5 +221,63 @@ export async function handleChat(roomId: string, messageContent: string, socket:
     } catch (error: any) {
         console.error("Error handling chat message:", error);
         socket.send(JSON.stringify({ type: "error", message: `Error sending message: ${error.message}` }));
+    }
+}
+
+export async function handleDeleteShape(roomId: string, shapeId: string, socket: WebSocket) {
+    try {
+        // 1. Validate the input
+        if (!roomId || !shapeId) {
+            socket.send(JSON.stringify({ type: "error", message: "Room ID and Shape ID are required for deletion." }));
+            return;
+        }
+
+        // 2. Find the sender and verify they are in the room
+        const sender = connectedUsers.find(u => u.ws === socket);
+        if (!sender) {
+            socket.send(JSON.stringify({ type: "error", message: "Authentication error: Your connection was not found." }));
+            return;
+        }
+        if (!sender.rooms.includes(roomId)) {
+            socket.send(JSON.stringify({ type: "error", message: `You are not authorized to delete shapes in room ${roomId}.` }));
+            return;
+        }
+
+        // 3. Delete the shape from the database
+        // We find the chat entry where the message (which is a JSON string) contains the unique ID of the shape.
+        const deleteResult = await prismaClient.chat.deleteMany({
+            where: {
+                roomId: Number(roomId),
+                message: {
+                    contains: `"id":"${shapeId}"`,
+                },
+            },
+        });
+
+        // Check if a shape was actually deleted
+        if (deleteResult.count === 0) {
+            // This can happen if another user deleted it first. It's not a critical error.
+            console.log(`Shape with ID ${shapeId} not found for deletion, likely already deleted.`);
+            // We can still broadcast, just in case some clients missed the first delete message.
+        }
+
+        // 4. Broadcast the deletion event to all users in the room
+        const deletionMessage = {
+            type: "shape-deleted",
+            roomId: roomId,
+            shapeId: shapeId,
+        };
+
+        connectedUsers.forEach(user => {
+            if (user.rooms.includes(roomId) && user.ws.readyState === WebSocket.OPEN) {
+                user.ws.send(JSON.stringify(deletionMessage));
+            }
+        });
+
+        console.log(`Shape ${shapeId} deleted from room ${roomId} by user ${sender.userId}`);
+
+    } catch (error: any) {
+        console.error("Error handling shape deletion:", error);
+        socket.send(JSON.stringify({ type: "error", message: `Server error during shape deletion: ${error.message}` }));
     }
 }

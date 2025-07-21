@@ -1,6 +1,7 @@
 "use server"
 
-import { RoomCanvas } from "../../../components/RoomCanvas";
+import { RoomCanvas } from "../../../../components/RoomCanvas";
+
 
 
 export default async function CanvasPage({

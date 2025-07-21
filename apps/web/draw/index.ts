@@ -1,8 +1,10 @@
 import axios from "axios";
 import { HTTP_BACKEND_URL } from "../config/links";
+import { log } from "console";
 
 type Shape =
   | {
+      id: string;
       type: "rect";
       xstart: number;
       ystart: number;
@@ -10,12 +12,14 @@ type Shape =
       height: number;
     }
   | {
+      id: string;
       type: "circle";
       xstart: number;
       ystart: number;
       radius: number;
     }
   | {
+      id: string;
       type: "line";
       xstart: number;
       ystart: number;
@@ -23,6 +27,7 @@ type Shape =
       yend: number;
     }
   | {
+      id: string;
       type: "pencil";
       options: { color: string; lineWidth: number; lineCap: CanvasLineCap };
       points: { x: number; y: number }[];
@@ -97,6 +102,13 @@ export const initDraw = async (
         console.error("Error parsing shape from WebSocket:", err);
       }
     }
+    else if(parsedData.type ==="shape-deleted" && parsedData.shapeId){
+      alert("shapeDeleted")
+      initialShapes = initialShapes.filter((shape)=>{
+        return shape.id != parsedData.shapeId;
+      })
+       clearAndRedraw(ctx, canvas, initialShapes);
+    }
   };
 
   // --- Drawing State ---
@@ -128,6 +140,7 @@ export const initDraw = async (
 
     if (shapeType === "rect") {
       newShape = {
+        id: crypto.randomUUID(),
         type: "rect",
         xstart: Math.min(XStart, xCurrent),
         ystart: Math.min(YStart, yCurrent),
@@ -138,9 +151,16 @@ export const initDraw = async (
       const radius = Math.sqrt(
         (xCurrent - XStart) ** 2 + (yCurrent - YStart) ** 2
       );
-      newShape = { type: "circle", xstart: XStart, ystart: YStart, radius };
+      newShape = {
+        id: crypto.randomUUID(),
+        type: "circle",
+        xstart: XStart,
+        ystart: YStart,
+        radius,
+      };
     } else if (shapeType === "line") {
       newShape = {
+        id: crypto.randomUUID(),
         type: "line",
         xstart: XStart,
         ystart: YStart,
@@ -150,6 +170,7 @@ export const initDraw = async (
     } else if (shapeType === "pencil") {
       if (currentPencilPath.length > 1) {
         newShape = {
+          id: crypto.randomUUID(),
           type: "pencil",
           options: { color: "white", lineWidth: 2, lineCap: "round" },
           points: currentPencilPath,
@@ -264,10 +285,24 @@ export const initDraw = async (
           }
         }
         if (hit) {
-          console.log("hit happened");
-          initialShapes.splice(i, 1);
-          clearAndRedraw(ctx, canvas, initialShapes);
-          break;
+          const shapeToDelete = initialShapes[i];
+
+          if (shapeToDelete) {
+            console.log(shapeToDelete?.id)
+            // 1. Send delete message to the server via WebSocket
+            socket.send(
+              JSON.stringify({
+                type: "shape-delete", 
+                  roomId: roomId,
+                  shapeId : shapeToDelete.id, 
+              })
+            );
+
+            // 2. You can still remove it locally for immediate feedback
+            initialShapes.splice(i, 1);
+            clearAndRedraw(ctx, canvas, initialShapes);
+          }
+          break; // Exit loop after finding and deleting one shape
         }
       }
     }
@@ -349,7 +384,6 @@ async function getAllShapes(roomId: string): Promise<Shape[]> {
       .filter((s): s is Shape => s !== null);
   } catch (err) {
     console.error("Failed to fetch shapes:", err);
-    // Return an empty array if an error occurs
     return [];
   }
 }
