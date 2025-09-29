@@ -8,7 +8,7 @@ const signinSchema = z.object({
 const signupSchema = z.object({
     name : z.string(),
     email : z.string().email(),
-    password : z.string().min(4)
+    password : z.string()
 })
 
 const jwtSchema = z.object({

@@ -72,6 +72,7 @@ const signup = async (req: Request, res: Response) => {
   const validationResult = signupSchema.safeParse(data);
 
   if (!validationResult.success) {
+    console.log(validationResult.error);
     return res.status(400).json({
       message: "Validation failed",
       errors: validationResult.error,
@@ -84,13 +85,13 @@ const signup = async (req: Request, res: Response) => {
     // Check if user with same username or email already exists
     const existingUser = await prismaClient.user.findFirst({
       where: {
-        OR: [{ email }, { name }],
+        email : email
       },
     });
 
     if (existingUser) {
       return res.status(409).json({
-        message: "Username or email already in use",
+        message: "email already in use",
       });
     }
 

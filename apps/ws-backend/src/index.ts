@@ -105,11 +105,11 @@ wss.on("connection", (socket, request) => {
     });
 
     socket.on("close", () => {
-      console.log(`Connection closed for user: ${parsedDecoded}`);
+      console.log(`Connection closed for user: ${parsedDecoded.name}`);
     });
 
     socket.on("error", (error) => {
-      console.error(`WebSocket error for user :`, error);
+      console.error(`WebSocket error for user ${parsedDecoded.name}:`, error);
     });
   } catch (error) {
     console.error("JWT verification failed:", error);
