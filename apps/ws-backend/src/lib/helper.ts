@@ -1,283 +1,541 @@
-import jwt, { decode } from "jsonwebtoken";
+// import jwt, { decode } from "jsonwebtoken";
+// import { JWT_SECRET } from "@repo/backend-common/config";
+// import { WebSocket } from 'ws'; // <--- Add this import for the 'ws' WebSocket type
+// import  {prismaClient}  from "@repo/db/client"
+// import { connectedUsers } from "./user";
+//export const authenticate = (token: string, socket: WebSocket) => {
+//     try {
+//         const decoded = jwt.verify(token, JWT_SECRET);
+//         console.log("Authenticated user:", decoded);
+
+//         if (!decoded) {
+//             console.log("inside not decoded")
+//             socket.close()
+//             return null;
+//         }
+//         let parsedDecoded: any;
+//         if (typeof decoded === 'string') {
+//             parsedDecoded = JSON.parse(decoded);
+//         } else {
+//             parsedDecoded = decoded;
+//         }
+
+//         if (!parsedDecoded) {
+//             console.log("inside not parseddecode")
+//             socket.close()
+//             return null;
+//         }
+
+//         return parsedDecoded;
+
+//     } catch (e: any) {
+//         console.log("error while parsing data: " + e.message);
+//         if (socket && typeof socket.send === 'function') { 
+//             socket.send("error while parsing data: " + e.message);
+//         } else {
+//             console.error("Socket is not valid or does not have a send method.");
+//         }
+//         return null;
+//     }
+// };
+
+
+// export async function joinRoom(roomId: string, socket: WebSocket, userId: string) {
+//     try {
+//         // 1. Validate the room
+//         const room = await prismaClient.room.findFirst({
+//             where: {
+//                 id: Number(roomId) // Assuming room IDs in your DB are numbers
+//             }
+//         });
+
+//         if (!room) {
+//             socket.send(JSON.stringify({ type: "error", message: "Not a valid Room ID." }));
+//             return; // Exit if room is invalid
+//         }
+
+//         // 2. Find or create the user in our in-memory store
+//         let existingUser = connectedUsers.find(u => u.ws === socket);
+
+//         if (!existingUser) {
+//             // User not found, create a new user entry
+//             existingUser = {
+//                 userId: userId, // Use the authenticated userId here
+//                 rooms: [],
+//                 ws: socket
+//             };
+//             connectedUsers.push(existingUser);
+//             console.log(`New user connected: ${userId}`);
+//         }
+
+//         // 3. Add the room to the user's rooms if not already present
+//         if (!existingUser.rooms.includes(roomId)) {
+//             existingUser.rooms.push(roomId);
+//             console.log(`User ${existingUser.userId} joined room: ${roomId}`);
+//             socket.send(JSON.stringify({ type: "roomJoined", roomId: roomId, message: `Successfully joined room ${roomId}` }));
+
+            
+//             connectedUsers.forEach(u => {
+//                 if (u.rooms.includes(roomId) && u.ws !== socket && u.ws.readyState === WebSocket.OPEN) {
+//                     u.ws.send(JSON.stringify({ type: "userJoined", roomId: roomId, userId: existingUser!.userId }));
+//                 }
+//             });
+
+//         } else {
+//             console.log(`User ${existingUser.userId} is already in room: ${roomId}`);
+//             socket.send(JSON.stringify({ type: "info", message: `You are already in room ${roomId}.` }));
+//         }
+
+//     } catch (error: any) {
+//         console.error("Error joining room:", error);
+//         socket.send(JSON.stringify({ type: "error", message: `Error joining room: ${error.message}` }));
+//     }
+// }
+
+// export async function createRoom(roomName: string, socket: WebSocket, userId: string) {
+//     try {
+//         if (!roomName || roomName.trim() === '') {
+//             socket.send(JSON.stringify({ type: "error", message: "Room name cannot be empty." }));
+//             return;
+//         }
+
+//         // 0 check if it already exist 
+//         const existingRoom = await prismaClient.room.findFirst({
+//             where :{
+//                 slug : roomName
+//             }
+//         })
+
+//         if(existingRoom){
+//             socket.send(`The room with room Name : ${roomName} already exist`);
+//             return
+//         }
+
+//         // 1. Create the room in the database
+//         const newRoom = await prismaClient.room.create({
+//             data: {
+//                 slug: roomName,
+//                 adminId: userId,
+//             },
+//         });
+
+//         console.log(`User ${userId} created new room: ${newRoom.slug} (ID: ${newRoom.id})`);
+//         socket.send(JSON.stringify({ type: "roomCreated", roomId: newRoom.id.toString(), roomName: newRoom.slug, message: `Room '${newRoom.slug}' created successfully.` }));
+
+//         await joinRoom(newRoom.id.toString(), socket, userId);
+
+//     } catch (error: any) {
+//         console.error("Error creating room:", error);
+//         socket.send(JSON.stringify({ type: "error", message: `Error creating room: ${error.message}` }));
+//     }
+// }
+
+
+
+// export async function leaveRoom(roomId: string, socket: WebSocket, userId: string) {
+//     try {
+//         // 1. Find the user in our in-memory store
+//         const existingUser = connectedUsers.find(u => u.ws === socket);
+
+//         if (!existingUser) {
+//             socket.send(JSON.stringify({ type: "error", message: "User not found in active connections." }));
+//             return;
+//         }
+
+//         // 2. Check if the user is actually in the room
+//         const roomIndex = existingUser.rooms.indexOf(roomId);
+//         if (roomIndex === -1) {
+//             socket.send(JSON.stringify({ type: "info", message: `You are not in room ${roomId}.` }));
+//             return;
+//         }
+
+//         // 3. Remove the room from the user's rooms list
+//         existingUser.rooms.splice(roomIndex, 1);
+//         console.log(`User ${userId} left room: ${roomId}`);
+//         socket.send(JSON.stringify({ type: "roomLeft", roomId: roomId, message: `Successfully left room ${roomId}.` }));
+
+//         // Optional: Notify other users in the room that someone left
+//         connectedUsers.forEach(u => {
+//             if (u.rooms.includes(roomId) && u.ws !== socket && u.ws.readyState === WebSocket.OPEN) {
+//                 u.ws.send(JSON.stringify({ type: "userLeft", roomId: roomId, userId: existingUser.userId }));
+//             }
+//         });
+
+//     } catch (error: any) {
+//         console.error("Error leaving room:", error);
+//         socket.send(JSON.stringify({ type: "error", message: `Error leaving room: ${error.message}` }));
+//     }
+// }
+
+
+// export async function handleChat(roomId: string, messageContent: string, socket: WebSocket, userId: string) {
+//     try {
+//         if (!messageContent || messageContent.trim() === '') {
+//             socket.send(JSON.stringify({ type: "error", message: "Chat message cannot be empty." }));
+//             return;
+//         }
+
+//         // 1. Find the sender in our in-memory store
+//         const sender = connectedUsers.find(u => u.ws === socket);
+
+//         if (!sender) {
+//             socket.send(JSON.stringify({ type: "error", message: "Sender not found in active connections." }));
+//             return;
+//         }
+
+//         // 2. Verify the sender is actually in the room they are trying to chat in
+//         if (!sender.rooms.includes(roomId)) {
+//             socket.send(JSON.stringify({ type: "error", message: `You are not in room ${roomId} to send messages.` }));
+//             return;
+//         }
+
+//         // Optional: Save message to database (e.g., for chat history)
+//         await prismaClient.chat.create({
+//             data: {
+//                 roomId: Number(roomId),
+//                 userId: userId,
+//                 message: messageContent,
+//             }
+//         });
+
+//         // 3. Broadcast the message to all users in that room
+//         const chatMessage = {
+//             type: "chat",
+//             roomId: roomId,
+//             senderId: userId,
+//             message: messageContent,
+//             timestamp: new Date().toISOString() // Add a timestamp
+//         };
+
+//         connectedUsers.forEach(u => {
+//             if (u.rooms.includes(roomId) && u.ws.readyState === WebSocket.OPEN && 
+//                  u.ws !== socket) {
+//                 // Send to everyone in the room, including the sender
+//                 console.log(`sending data in ${roomId}`)
+//                 u.ws.send(JSON.stringify(chatMessage));
+//             }
+//         });
+
+//         console.log(`Chat message from ${userId} in room ${roomId}: "${messageContent}"`);
+
+//     } catch (error: any) {
+//         console.error("Error handling chat message:", error);
+//         socket.send(JSON.stringify({ type: "error", message: `Error sending message: ${error.message}` }));
+//     }
+// }
+
+// export async function handleDeleteShape(roomId: string, shapeId: string, socket: WebSocket) {
+//     try {
+//         // 1. Validate the input
+//         if (!roomId || !shapeId) {
+//             socket.send(JSON.stringify({ type: "error", message: "Room ID and Shape ID are required for deletion." }));
+//             return;
+//         }
+
+//         // 2. Find the sender and verify they are in the room
+//         const sender = connectedUsers.find(u => u.ws === socket);
+//         if (!sender) {
+//             socket.send(JSON.stringify({ type: "error", message: "Authentication error: Your connection was not found." }));
+//             return;
+//         }
+//         if (!sender.rooms.includes(roomId)) {
+//             socket.send(JSON.stringify({ type: "error", message: `You are not authorized to delete shapes in room ${roomId}.` }));
+//             return;
+//         }
+
+//         // 3. Delete the shape from the database
+//         // We find the chat entry where the message (which is a JSON string) contains the unique ID of the shape.
+//         const deleteResult = await prismaClient.chat.deleteMany({
+//             where: {
+//                 roomId: Number(roomId),
+//                 message: {
+//                     contains: `"id":"${shapeId}"`,
+//                 },
+//             },
+//         });
+
+//         // Check if a shape was actually deleted
+//         if (deleteResult.count === 0) {
+//             // This can happen if another user deleted it first. It's not a critical error.
+//             console.log(`Shape with ID ${shapeId} not found for deletion, likely already deleted.`);
+//             // We can still broadcast, just in case some clients missed the first delete message.
+//         }
+
+//         // 4. Broadcast the deletion event to all users in the room
+//         const deletionMessage = {
+//             type: "shape-deleted",
+//             roomId: roomId,
+//             shapeId: shapeId,
+//         };
+
+//         connectedUsers.forEach(user => {
+//             if (user.rooms.includes(roomId) && user.ws.readyState === WebSocket.OPEN) {
+//                 user.ws.send(JSON.stringify(deletionMessage));
+//             }
+//         });
+
+//         console.log(`Shape ${shapeId} deleted from room ${roomId} by user ${sender.userId}`);
+
+//     } catch (error: any) {
+//         console.error("Error handling shape deletion:", error);
+//         socket.send(JSON.stringify({ type: "error", message: `Server error during shape deletion: ${error.message}` }));
+//     }
+// }
+
+
+
+
+
+
+
+import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "@repo/backend-common/config";
-import { WebSocket } from 'ws'; // <--- Add this import for the 'ws' WebSocket type
-import  {prismaClient}  from "@repo/db/client"
-import { connectedUsers } from "./user";
+import { WebSocket } from "ws";
+import { prismaClient } from "@repo/db/client";
+import { connectedUsers, ConnectedUser } from "./user";
+
+/* ---------------------------------------------------
+   SAFE SEND
+-----------------------------------------------------*/
+function safeSend(ws: WebSocket, data: any) {
+    try {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(data));
+        }
+    } catch (err) {
+        console.error("[safeSend] Send error:", err);
+    }
+}
+
+/* ---------------------------------------------------
+   AUTHENTICATION
+-----------------------------------------------------*/
 export const authenticate = (token: string, socket: WebSocket) => {
+    console.log("[authenticate] Attempting authentication...");
+
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
-        console.log("Authenticated user:", decoded);
+        const user = typeof decoded === "string" ? JSON.parse(decoded) : decoded;
 
-        if (!decoded) {
-            console.log("inside not decoded")
-            socket.close()
-            return null;
-        }
-        let parsedDecoded: any;
-        if (typeof decoded === 'string') {
-            parsedDecoded = JSON.parse(decoded);
-        } else {
-            parsedDecoded = decoded;
-        }
-
-        if (!parsedDecoded) {
-            console.log("inside not parseddecode")
-            socket.close()
+        if (!user?.id) {
+            console.warn("[authenticate] Invalid token payload - missing user.id");
+            safeSend(socket, { type: "error", message: "Invalid token payload" });
+            socket.close();
             return null;
         }
 
-        return parsedDecoded;
+        console.log(`[authenticate] Success - User ID: ${user.id}`);
+        return user;
 
-    } catch (e: any) {
-        console.log("error while parsing data: " + e.message);
-        if (socket && typeof socket.send === 'function') { 
-            socket.send("error while parsing data: " + e.message);
-        } else {
-            console.error("Socket is not valid or does not have a send method.");
-        }
+    } catch (err: any) {
+        console.error("[authenticate] Authentication failed:", err.message || err);
+        safeSend(socket, { type: "error", message: "Invalid or expired token" });
+        socket.close();
         return null;
     }
 };
 
-
+/* ---------------------------------------------------
+   JOIN ROOM
+-----------------------------------------------------*/
 export async function joinRoom(roomId: string, socket: WebSocket, userId: string) {
+    console.log(`[joinRoom] User ${userId} attempting to join room ${roomId}`);
+
     try {
-        // 1. Validate the room
-        const room = await prismaClient.room.findFirst({
-            where: {
-                id: Number(roomId) // Assuming room IDs in your DB are numbers
-            }
+        const room = await prismaClient.room.findUnique({
+            where: { id: Number(roomId) }
         });
 
         if (!room) {
-            socket.send(JSON.stringify({ type: "error", message: "Not a valid Room ID." }));
-            return; // Exit if room is invalid
+            console.warn(`[joinRoom] Room ${roomId} not found`);
+            safeSend(socket, { type: "error", message: "Invalid room ID" });
+            return;
         }
 
-        // 2. Find or create the user in our in-memory store
-        let existingUser = connectedUsers.find(u => u.ws === socket);
+        let user = connectedUsers.get(userId);
 
-        if (!existingUser) {
-            // User not found, create a new user entry
-            existingUser = {
-                userId: userId, // Use the authenticated userId here
-                rooms: [],
-                ws: socket
+        if (!user) {
+            console.log(`[joinRoom] New user connection - creating entry for user ${userId}`);
+            user = {
+                userId,
+                ws: socket,
+                rooms: new Set()
             };
-            connectedUsers.push(existingUser);
-            console.log(`New user connected: ${userId}`);
+            connectedUsers.set(userId, user);
         }
 
-        // 3. Add the room to the user's rooms if not already present
-        if (!existingUser.rooms.includes(roomId)) {
-            existingUser.rooms.push(roomId);
-            console.log(`User ${existingUser.userId} joined room: ${roomId}`);
-            socket.send(JSON.stringify({ type: "roomJoined", roomId: roomId, message: `Successfully joined room ${roomId}` }));
-
-            
-            connectedUsers.forEach(u => {
-                if (u.rooms.includes(roomId) && u.ws !== socket && u.ws.readyState === WebSocket.OPEN) {
-                    u.ws.send(JSON.stringify({ type: "userJoined", roomId: roomId, userId: existingUser!.userId }));
-                }
-            });
-
-        } else {
-            console.log(`User ${existingUser.userId} is already in room: ${roomId}`);
-            socket.send(JSON.stringify({ type: "info", message: `You are already in room ${roomId}.` }));
-        }
-
-    } catch (error: any) {
-        console.error("Error joining room:", error);
-        socket.send(JSON.stringify({ type: "error", message: `Error joining room: ${error.message}` }));
-    }
-}
-
-export async function createRoom(roomName: string, socket: WebSocket, userId: string) {
-    try {
-        if (!roomName || roomName.trim() === '') {
-            socket.send(JSON.stringify({ type: "error", message: "Room name cannot be empty." }));
+        if (user.rooms.has(roomId)) {
+            console.info(`[joinRoom] User ${userId} already in room ${roomId}`);
+            safeSend(socket, { type: "info", message: "Already in room" });
             return;
         }
 
-        // 0 check if it already exist 
-        const existingRoom = await prismaClient.room.findFirst({
-            where :{
-                slug : roomName
-            }
-        })
+        user.rooms.add(roomId);
+        console.log(`[joinRoom] User ${userId} successfully joined room ${roomId}`);
 
-        if(existingRoom){
-            socket.send(`The room with room Name : ${roomName} already exist`);
-            return
-        }
-
-        // 1. Create the room in the database
-        const newRoom = await prismaClient.room.create({
-            data: {
-                slug: roomName,
-                adminId: userId,
-            },
+        safeSend(socket, {
+            type: "room-joined",
+            roomId,
+            message: "Joined room"
         });
 
-        console.log(`User ${userId} created new room: ${newRoom.slug} (ID: ${newRoom.id})`);
-        socket.send(JSON.stringify({ type: "roomCreated", roomId: newRoom.id.toString(), roomName: newRoom.slug, message: `Room '${newRoom.slug}' created successfully.` }));
+        // Broadcast to others in room
+        let broadcastCount = 0;
+        connectedUsers.forEach((u) => {
+            if (u.userId !== userId && u.rooms.has(roomId)) {
+                safeSend(u.ws, {
+                    type: "user-joined",
+                    userId,
+                    roomId
+                });
+                broadcastCount++;
+            }
+        });
+        console.log(`[joinRoom] Broadcasted user-joined to ${broadcastCount} users in room ${roomId}`);
 
-        await joinRoom(newRoom.id.toString(), socket, userId);
-
-    } catch (error: any) {
-        console.error("Error creating room:", error);
-        socket.send(JSON.stringify({ type: "error", message: `Error creating room: ${error.message}` }));
+    } catch (err: any) {
+        console.error(`[joinRoom] Error for user ${userId}, room ${roomId}:`, err.message || err);
+        safeSend(socket, { type: "error", message: err.message || "Failed to join room" });
     }
 }
 
-
-
+/* ---------------------------------------------------
+   LEAVE ROOM
+-----------------------------------------------------*/
 export async function leaveRoom(roomId: string, socket: WebSocket, userId: string) {
+    console.log(`[leaveRoom] User ${userId} leaving room ${roomId}`);
+
     try {
-        // 1. Find the user in our in-memory store
-        const existingUser = connectedUsers.find(u => u.ws === socket);
+        const user = connectedUsers.get(userId);
 
-        if (!existingUser) {
-            socket.send(JSON.stringify({ type: "error", message: "User not found in active connections." }));
+        if (!user || !user.rooms.has(roomId)) {
+            console.info(`[leaveRoom] User ${userId} was not in room ${roomId}`);
+            safeSend(socket, { type: "info", message: "Not in room" });
             return;
         }
 
-        // 2. Check if the user is actually in the room
-        const roomIndex = existingUser.rooms.indexOf(roomId);
-        if (roomIndex === -1) {
-            socket.send(JSON.stringify({ type: "info", message: `You are not in room ${roomId}.` }));
-            return;
-        }
+        user.rooms.delete(roomId);
+        console.log(`[leaveRoom] User ${userId} removed from room ${roomId}`);
 
-        // 3. Remove the room from the user's rooms list
-        existingUser.rooms.splice(roomIndex, 1);
-        console.log(`User ${userId} left room: ${roomId}`);
-        socket.send(JSON.stringify({ type: "roomLeft", roomId: roomId, message: `Successfully left room ${roomId}.` }));
+        safeSend(socket, { type: "room-left", roomId });
 
-        // Optional: Notify other users in the room that someone left
-        connectedUsers.forEach(u => {
-            if (u.rooms.includes(roomId) && u.ws !== socket && u.ws.readyState === WebSocket.OPEN) {
-                u.ws.send(JSON.stringify({ type: "userLeft", roomId: roomId, userId: existingUser.userId }));
+        let broadcastCount = 0;
+        connectedUsers.forEach((u) => {
+            if (u.userId !== userId && u.rooms.has(roomId)) {
+                safeSend(u.ws, {
+                    type: "user-left",
+                    userId,
+                    roomId
+                });
+                broadcastCount++;
             }
         });
+        console.log(`[leaveRoom] Broadcasted user-left to ${broadcastCount} users`);
 
-    } catch (error: any) {
-        console.error("Error leaving room:", error);
-        socket.send(JSON.stringify({ type: "error", message: `Error leaving room: ${error.message}` }));
+    } catch (err: any) {
+        console.error(`[leaveRoom] Error for user ${userId}, room ${roomId}:`, err);
+        safeSend(socket, { type: "error", message: err.message || "Failed to leave room" });
     }
 }
 
+/* ---------------------------------------------------
+   CHAT HANDLER
+-----------------------------------------------------*/
+export async function handleChat(roomId: string, message: string, socket: WebSocket, userId: string) {
+    console.log(`[handleChat] User ${userId} sending message in room ${roomId}: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`);
 
-export async function handleChat(roomId: string, messageContent: string, socket: WebSocket, userId: string) {
     try {
-        if (!messageContent || messageContent.trim() === '') {
-            socket.send(JSON.stringify({ type: "error", message: "Chat message cannot be empty." }));
+        if (!message.trim()) {
+            console.warn(`[handleChat] Empty message rejected from user ${userId}`);
+            safeSend(socket, { type: "error", message: "Message cannot be empty" });
             return;
         }
 
-        // 1. Find the sender in our in-memory store
-        const sender = connectedUsers.find(u => u.ws === socket);
-
-        if (!sender) {
-            socket.send(JSON.stringify({ type: "error", message: "Sender not found in active connections." }));
+        const user = connectedUsers.get(userId);
+        if (!user || !user.rooms.has(roomId)) {
+            console.warn(`[handleChat] Unauthorized chat attempt by user ${userId} in room ${roomId}`);
+            safeSend(socket, { type: "error", message: "You are not in this room" });
             return;
         }
 
-        // 2. Verify the sender is actually in the room they are trying to chat in
-        if (!sender.rooms.includes(roomId)) {
-            socket.send(JSON.stringify({ type: "error", message: `You are not in room ${roomId} to send messages.` }));
-            return;
-        }
-
-        // Optional: Save message to database (e.g., for chat history)
-        await prismaClient.chat.create({
+        const saved = await prismaClient.chat.create({
             data: {
                 roomId: Number(roomId),
-                userId: userId,
-                message: messageContent,
+                userId,
+                message,
             }
         });
+        console.log(`[handleChat] Message saved to DB - chat ID: ${saved.id}`);
 
-        // 3. Broadcast the message to all users in that room
-        const chatMessage = {
+        const payload = {
             type: "chat",
-            roomId: roomId,
+            roomId,
             senderId: userId,
-            message: messageContent,
-            timestamp: new Date().toISOString() // Add a timestamp
+            message,
         };
 
-        connectedUsers.forEach(u => {
-            if (u.rooms.includes(roomId) && u.ws.readyState === WebSocket.OPEN && 
-                 u.ws !== socket) {
-                // Send to everyone in the room, including the sender
-                console.log(`sending data in ${roomId}`)
-                u.ws.send(JSON.stringify(chatMessage));
+        let recipientCount = 0;
+        connectedUsers.forEach((u) => {
+            if (u.rooms.has((roomId))) {
+                safeSend(u.ws, payload);
+                if (u.userId !== userId) recipientCount++;
             }
         });
 
-        console.log(`Chat message from ${userId} in room ${roomId}: "${messageContent}"`);
+        console.log(`[handleChat] Message broadcasted to ${recipientCount} other users in room ${roomId}`);
 
-    } catch (error: any) {
-        console.error("Error handling chat message:", error);
-        socket.send(JSON.stringify({ type: "error", message: `Error sending message: ${error.message}` }));
+    } catch (err: any) {
+        console.error(`[handleChat] Error saving/broadcasting message from user ${userId}:`, err);
+        safeSend(socket, { type: "error", message: err.message || "Failed to send message" });
     }
 }
 
+/* ---------------------------------------------------
+   DELETE SHAPE
+-----------------------------------------------------*/
 export async function handleDeleteShape(roomId: string, shapeId: string, socket: WebSocket) {
+    console.log(`[handleDeleteShape] Attempt to delete shape ${shapeId} in room ${roomId}`);
+
     try {
-        // 1. Validate the input
-        if (!roomId || !shapeId) {
-            socket.send(JSON.stringify({ type: "error", message: "Room ID and Shape ID are required for deletion." }));
+        const user = [...connectedUsers.values()].find(u => u.ws === socket);
+
+        if (!user || !user.rooms.has(roomId)) {
+            console.warn(`[handleDeleteShape] Unauthorized delete attempt for shape ${shapeId} in room ${roomId}`);
+            safeSend(socket, { type: "error", message: "Unauthorized" });
             return;
         }
 
-        // 2. Find the sender and verify they are in the room
-        const sender = connectedUsers.find(u => u.ws === socket);
-        if (!sender) {
-            socket.send(JSON.stringify({ type: "error", message: "Authentication error: Your connection was not found." }));
-            return;
-        }
-        if (!sender.rooms.includes(roomId)) {
-            socket.send(JSON.stringify({ type: "error", message: `You are not authorized to delete shapes in room ${roomId}.` }));
-            return;
-        }
+        console.log(`[handleDeleteShape] User ${user.userId} authorized - deleting shape ${shapeId}`);
 
-        // 3. Delete the shape from the database
-        // We find the chat entry where the message (which is a JSON string) contains the unique ID of the shape.
         const deleteResult = await prismaClient.chat.deleteMany({
             where: {
                 roomId: Number(roomId),
                 message: {
-                    contains: `"id":"${shapeId}"`,
-                },
-            },
-        });
-
-        // Check if a shape was actually deleted
-        if (deleteResult.count === 0) {
-            // This can happen if another user deleted it first. It's not a critical error.
-            console.log(`Shape with ID ${shapeId} not found for deletion, likely already deleted.`);
-            // We can still broadcast, just in case some clients missed the first delete message.
-        }
-
-        // 4. Broadcast the deletion event to all users in the room
-        const deletionMessage = {
-            type: "shape-deleted",
-            roomId: roomId,
-            shapeId: shapeId,
-        };
-
-        connectedUsers.forEach(user => {
-            if (user.rooms.includes(roomId) && user.ws.readyState === WebSocket.OPEN) {
-                user.ws.send(JSON.stringify(deletionMessage));
+                    contains: `"id":"${shapeId}"`
+                }
             }
         });
 
-        console.log(`Shape ${shapeId} deleted from room ${roomId} by user ${sender.userId}`);
+        console.log(`[handleDeleteShape] Deleted ${deleteResult.count} chat record(s) containing shape ${shapeId}`);
 
-    } catch (error: any) {
-        console.error("Error handling shape deletion:", error);
-        socket.send(JSON.stringify({ type: "error", message: `Server error during shape deletion: ${error.message}` }));
+        const payload = {
+            type: "shape-deleted",
+            roomId,
+            shapeId
+        };
+
+        let broadcastCount = 0;
+        connectedUsers.forEach((u) => {
+            if (u.rooms.has(roomId)) {
+                safeSend(u.ws, payload);
+                broadcastCount++;
+            }
+        });
+
+        console.log(`[handleDeleteShape] Broadcasted deletion to ${broadcastCount} users in room ${roomId}`);
+
+    } catch (err: any) {
+        console.error(`[handleDeleteShape] Error deleting shape ${shapeId}:`, err);
+        safeSend(socket, { type: "error", message: err.message || "Failed to delete shape" });
     }
 }

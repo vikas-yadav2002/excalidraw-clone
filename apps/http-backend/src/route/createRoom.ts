@@ -1,12 +1,13 @@
 import { Router } from "express";
-import { createRoom } from "../controllers/roomController";
+import { createRoom , checkRoomSlug } from "../controllers/roomController";
+import authenticate from "../middleware/authmiddleware";
 
+const roomRouter: Router = Router();
 
+// Create new room
+roomRouter.post("/create-room",authenticate, createRoom);
 
-const roomRouter :Router = Router();
+// Check if room exists
+roomRouter.get("/check-room", checkRoomSlug);
 
-roomRouter.post('/create-room' , createRoom )
-
-
-// Export the router
 export default roomRouter;

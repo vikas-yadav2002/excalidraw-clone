@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { prismaClient } from "@repo/db/client";
 import { CreateRoomPayloadSchema, RoomSchema } from "@repo/common/types";
-
+import { z } from "zod";
 interface AuthenticatedRequest extends Request {
   user?: {
     id: string; 
@@ -90,4 +90,55 @@ const createRoom = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
-export { createRoom };
+const CheckRoomSchema = z.object({
+  slug: z.string().min(1, "Slug is required"),
+});
+
+const checkRoomSlug = async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.query;
+
+    // Step 1 — Validate slug
+    const parsed = CheckRoomSchema.safeParse({
+      slug
+    });
+
+    if (!parsed.success) {
+      return res.status(400).json({
+        message: "Invalid or missing slug parameter.",
+        errors: parsed.error,
+        exists: false,
+      });
+    }
+
+    const cleanedSlug = parsed.data.slug.toLowerCase().trim().replace(/\s+/g, "-");
+    console.log("Checking existence for room slug:", cleanedSlug);
+    // Step 2 — Check for room existence
+    const room = await prismaClient.room.findUnique({
+      where: { slug: cleanedSlug }
+    });
+
+    if (!room) {
+      return res.status(200).json({
+        message: "Room not found.",
+        exists: false,
+      });
+    }
+
+    // Room exists
+    return res.status(200).json({
+      message: "Room exists.",
+      exists: true,
+      room,
+    });
+
+  } catch (err: any) {
+    console.error("Error checking room slug:", err.message);
+    return res.status(500).json({
+      message: "Internal server error.",
+      exists: false,
+    });
+  }
+};
+
+export { createRoom , checkRoomSlug };

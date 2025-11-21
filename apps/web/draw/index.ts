@@ -33,7 +33,7 @@ type Shape =
       points: { x: number; y: number }[];
     };
 
-export type SelectedShape = "rect" | "circle" | "line" | "pencil" | "erasure";
+export type SelectedShape = "rect" | "circle" | "line" | "pencil" | "erasure" | "Text" | "arrow";
 
 let initialShapes: Shape[] = [];
 

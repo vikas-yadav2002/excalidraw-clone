@@ -7,9 +7,8 @@ import cors from "cors"
 const app = express();
 app.use(express.json());
 app.use(cors())
-
 app.use('/api/v1/auth' , authrouter)
-app.use('/api/v1/room' , authenticate ,roomRouter)
+app.use('/api/v1/rooms'  ,roomRouter)
 app.use('/api/v1/chats' ,authenticate , chatRouter)
 
 
